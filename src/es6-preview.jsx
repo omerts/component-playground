@@ -2,7 +2,7 @@
 "use strict";
 
 import React from "react/addons";
-import babel from "babel-core/browser";
+import {tranformWithConsole, getScope} from "./compiler";
 
 const getType = function (el) {
   let t = typeof el;
@@ -47,10 +47,10 @@ const wrapMap = {
   },
 
   wrapobject(obj) {
-    let pairs = [];
+    const pairs = [];
     let first = true;
 
-    for (let key in obj) {
+    for (const key in obj) {
       pairs.push(
         <span>
           <span style={{color: "#8A6BA1"}}>
@@ -98,16 +98,7 @@ const Preview = React.createClass({
   },
 
   _compileCode() {
-    return babel.transform(`
-      (function(${Object.keys(this.props.scope).join(",")}) {
-        var list = [];
-        var console = { log(...x) {
-          list.push({val: x, multipleArgs: x.length !== 1})
-        }};
-        ${this.props.code}
-        return list;
-      });
-    `, { stage: 1 }).code;
+    return tranformWithConsole(this.props.code, this.props.scope);
   },
 
   _setTimeout() {
@@ -116,7 +107,7 @@ const Preview = React.createClass({
   },
 
   _executeCode() {
-    var mountNode = this.refs.mount.getDOMNode();
+    const mountNode = this.refs.mount.getDOMNode();
 
     try {
       React.unmountComponentAtNode(mountNode);
@@ -125,15 +116,17 @@ const Preview = React.createClass({
     }
 
     try {
-      var scope = [];
-      for (var s in this.props.scope) {
+      const scope = getScope();
+
+      for (const s in this.props.scope) {
         if (this.props.scope.hasOwnProperty(s)) {
           scope.push(this.props.scope[s]);
         }
       }
+
       scope.push(mountNode);
-      var compiledCode = this._compileCode();
-      var Component = React.createElement(
+      const compiledCode = this._compileCode();
+      const Component = React.createElement(
         React.createClass({
           _createConsoleLine(x, multipleArgs) {
             return (
